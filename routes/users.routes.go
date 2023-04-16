@@ -6,6 +6,7 @@ import (
 
 	"github.com/emersongonzal86/go-gorm-restapi/db"
 	"github.com/emersongonzal86/go-gorm-restapi/models"
+	"github.com/gorilla/mux"
 )
 
 func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
@@ -15,13 +16,23 @@ func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("get user"))
+	var user models.User
+	params := mux.Vars(r)
+	db.DB.First(&user, params["id"])
+
+	if user.ID == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("User not found"))
+		return
+	}
+
+	json.NewEncoder(w).Encode(params)
 }
 
 func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	json.NewDecoder(r.Body).Decode(&user)
-	createdUser := db.DB.Create(&user)	
+	createdUser := db.DB.Create(&user)
 
 	err := createdUser.Error
 	if err != nil {
@@ -35,5 +46,17 @@ func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Delete"))
+	var user models.User
+	params := mux.Vars(r)
+	db.DB.First(&user, params["id"])
+
+	if user.ID == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("User not found"))
+		return
+	}
+	//de la siguiente manera hace el softdelete del registro
+	//db.DB.Delete(&user)
+	//si quiero borrar el dato fisicamente de la base de datos uso lo siguiente
+	db.DB.Unscoped().Delete(&user)
 }
